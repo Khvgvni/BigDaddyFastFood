@@ -16,7 +16,7 @@ load_dotenv()
 
 # 🔑 Настройки
 TOKEN = "8259299108:AAEGFbhRHAd0Zjy4yX6z2MA27QnoZas0LvI"
-GROUP_CHAT_ID = -1003014842866
+GROUP_CHAT_ID = -1005018392524
 PRIVACY_URL = os.getenv("PRIVACY_URL", "https://docs.google.com/document/...")
 ADMINS = [150203692]
 
@@ -38,12 +38,10 @@ logger = logging.getLogger(__name__)
 
 # 📌 Состояния
 REG_NAME, REG_PHONE, TEAM_NAME, TEAM_PHONE, TEAM_ROLE = range(5)
-CHANGE_STATUS_ID, CHANGE_STATUS_SELECT = range(5, 7)
 
 # ---------- УТИЛИТЫ ----------
 def nav_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]])
-
 
 def get_user_data(user_id: int):
     try:
@@ -57,24 +55,8 @@ def get_user_data(user_id: int):
         return None
     return None
 
-
 def is_registered(user_id: int) -> bool:
     return get_user_data(user_id) is not None
-
-
-def get_all_users():
-    users = []
-    try:
-        with open("users.csv", "r", encoding="utf-8") as f:
-            r = csv.reader(f, delimiter=";")
-            next(r, None)
-            for row in r:
-                if len(row) >= 3 and row[2].isdigit():
-                    users.append(int(row[2]))
-    except FileNotFoundError:
-        pass
-    return users
-
 
 def save_post(file_id: str, caption: str):
     new_file = not os.path.exists("posts.csv")
@@ -83,7 +65,6 @@ def save_post(file_id: str, caption: str):
         if new_file:
             writer.writerow(["file_id", "caption"])
         writer.writerow([file_id, caption])
-
 
 def load_posts():
     posts = []
@@ -98,7 +79,6 @@ def load_posts():
         pass
     return posts
 
-
 # ---------- СТАРТ ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -110,33 +90,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🎭 Афиша", callback_data="show_afisha")]
     ]
     welcome_text = (
-        "👋 Привет! Добро пожаловать в чат-боub Big Daddy!* 🎉\n\n"
+        "👋 Привет! Добро пожаловать в чат-бот Big Daddy!* 🎉\n\n"
         "Новый филиал Big Daddy с дополнением армянской и грузинской кухни\n\n"
         "Разные блюда на каждый день\n\n"
         "Площадка для ваших мероприятий. 🚚 * действует доставка.\n\n"
         "⌚️Время работы:10:00 – 23:00\n\n"
         "📲+791435172718\n\n"
         "🌃г.Комсомольская, 23АА\n\n"
-        
         "Пройдите простую регистрацию, чтобы бронировать столы, получать билеты и пользоваться другими функциями.\n\n"
         f"Регистрируясь, вы соглашаетесь с [политикой конфиденциальности]({PRIVACY_URL})."
     )
     if update.message:
-        with open(WELCOME_IMG, "rb") as photo:
-            await update.message.reply_photo(
-                photo=photo,
-                caption=welcome_text,
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(kb)
-            )
-
+        await update.message.reply_text(
+            welcome_text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(kb)
+        )
 
 # ---------- МЕНЮ ----------
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
     kb_buttons = [
-        # Основные сервисы
         [
             InlineKeyboardButton("🎪 Приложение", web_app=WebAppInfo(url="https://khvgvni.github.io/BadRabbitWebApp/")),
             InlineKeyboardButton("🍽 Бронь", callback_data="book_table")
@@ -144,12 +119,10 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton("🎟 Пригласительный", callback_data="invite")
         ],
-        # Информация
         [
             InlineKeyboardButton("👥 В команду", callback_data="join_team"),
             InlineKeyboardButton("🎭 Афиша", callback_data="show_afisha")
         ],
-        # Поддержка
         [
             InlineKeyboardButton("💬 Чат", callback_data="open_chat"),
             InlineKeyboardButton("❓ FAQ", callback_data="show_faq")
@@ -161,12 +134,12 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     kb = InlineKeyboardMarkup(kb_buttons)
 
-    text = " *Strip club «Cabinet»*\n\nВыберите действие:"
+    text = "🍽️ *Кафе «Big Daddy»*\n\nВыберите действие:"
     if update.message:
         await update.message.reply_text(text, reply_markup=kb, parse_mode='Markdown')
     else:
         await update.callback_query.message.reply_text(text, reply_markup=kb, parse_mode='Markdown')
-        
+
 # ---------- ЧАТ С АДМИНОМ ----------
 async def open_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -182,13 +155,12 @@ async def stop_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.answer()
     context.user_data["in_chat"] = False
     await q.message.reply_text(
-        "Чат завершён. Нажмите «Главное меню» → «💬 Чат с админом», чтобы начать заново.",
+        "Чат завершён. Нажмите «Главное меню» → «💬 Чат», чтобы начать заново.",
         reply_markup=nav_keyboard()
     )
 
 async def user_to_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("in_chat"):
-        # Если не в режиме чата, показываем меню
         await show_main_menu(update, context)
         return
 
@@ -196,7 +168,6 @@ async def user_to_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
 
     try:
-        # Создаем сообщение-заголовок
         header_text = f"👤 *Сообщение от пользователя:*\n" \
                      f"🆔 ID: `{user.id}`\n" \
                      f"📛 Имя: {user.full_name}\n" \
@@ -208,7 +179,6 @@ async def user_to_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
 
-        # Отправляем само сообщение пользователя
         if msg.text:
             user_msg = await context.bot.send_message(
                 GROUP_CHAT_ID,
@@ -221,34 +191,25 @@ async def user_to_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_to_message_id=header_msg.message_id
             )
 
-        # Сохраняем в ROUTE оба ID
         ROUTE[header_msg.message_id] = user.id
         ROUTE[user_msg.message_id] = user.id
 
-        # Подтверждаем пользователю
         await msg.reply_text(
-            "✅ Ваше сообщение отправлено администраторам. " \
-            "Ожидайте ответа в этом чате.",
+            "✅ Ваше сообщение отправлено администраторам. Ожидайте ответа в этом чате.",
             reply_markup=STOP_KB
         )
 
     except Exception as e:
         logger.error(f"Ошибка отправки в группу: {e}")
         await msg.reply_text("❌ Ошибка отправки сообщения.")
-        
-    except Exception as e:
-        logger.error(f"Ошибка отправки в группу: {e}")
-        await msg.reply_text("❌ Ошибка отправки. Попробуйте позже.")
 
 async def support_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     chat = update.effective_chat
     
-    # Проверяем, что это группа админов И это ответ на сообщение
     if chat.id != GROUP_CHAT_ID or not msg.reply_to_message:
         return
 
-    # Ищем ID пользователя по сообщению, на которое ответили
     target_user_id = ROUTE.get(msg.reply_to_message.message_id)
     
     if not target_user_id:
@@ -256,7 +217,6 @@ async def support_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # Отправляем сообщение пользователю
         if msg.text:
             await context.bot.send_message(
                 chat_id=target_user_id,
@@ -270,12 +230,11 @@ async def support_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="💬 Ответ от администратора (неподдерживаемый тип сообщения)"
             )
         
-        # Подтверждаем админу
         await msg.reply_text("✅ Ответ отправлен пользователю")
         
     except Exception as e:
         logger.error(f"Ошибка отправки пользователю {target_user_id}: {e}")
-        await msg.reply_text("❌ Не удалось отправить сообщение пользователю (возможно, заблокировал бота)")
+        await msg.reply_text("❌ Не удалось отправить сообщение пользователю")
 
 # ---------- РЕГИСТРАЦИЯ ----------
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -284,12 +243,10 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.message.reply_text("✍️ Введите ваше ФИО:")
     return REG_NAME
 
-
 async def reg_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["reg_name"] = update.message.text
     await update.message.reply_text("📞 Введите ваш телефон:")
     return REG_PHONE
-
 
 async def reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["reg_phone"] = update.message.text
@@ -310,7 +267,7 @@ async def reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Регистрация завершена!")
     await show_main_menu(update, context)
     return ConversationHandler.END
-    
+
 # ---------- БРОНЬ ----------
 async def book_table(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -334,9 +291,7 @@ async def book_table(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
-    with open(INVITE_IMG, "rb") as photo:
-        await q.message.reply_photo(photo=photo, caption="🎟 Ваш пригласительный!", reply_markup=nav_keyboard())
-
+    await q.message.reply_text("🎟 Ваш пригласительный!", reply_markup=nav_keyboard())
 
 # ---------- КОМАНДА ----------
 async def join_team(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -345,18 +300,15 @@ async def join_team(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.message.reply_text("✍️ Введите ваше ФИО:")
     return TEAM_NAME
 
-
 async def team_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["team_name"] = update.message.text
     await update.message.reply_text("📞 Введите ваш телефон:")
     return TEAM_PHONE
 
-
 async def team_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["team_phone"] = update.message.text
     await update.message.reply_text("💼 Укажите интересующую должность:")
     return TEAM_ROLE
-
 
 async def team_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["team_role"] = update.message.text
@@ -377,54 +329,53 @@ async def show_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     faq_text = """
-*кафе "Big Daddy"* 
+*Кафе "Big Daddy"* 
 
 *Контактная информация:*
 
 📍 *Адрес*
-└─ ул. Садовая, 1а
+└─ г.Комсомольская, 23АА
 
 📞 *Телефон*
-└─ +7-914-497-08-07
+└─ +7-914-351-727-18
 
 🕒 *Часы работы*
-└─ Ежедневно: 10:00 – 22:00
+└─ Ежедневно: 10:00 – 23:00
 
-*Перед доставкой обязательно ознакомься с правилами:*
+*Перед посещением обязательно ознакомьтесь с правилами:*
     """
     
     kb_buttons = [
-        [InlineKeyboardButton("📜 Правила посещения клуба", url="https://telegra.ph/Pravila-poseshcheniya-kluba-Cabinet-10-30")],
+        [InlineKeyboardButton("📜 Правила заведения", url="https://telegra.ph/Pravila-poseshcheniya-kluba-Cabinet-10-30")],
         [InlineKeyboardButton("🔙 Назад в меню", callback_data="main_menu")]
     ]
     kb = InlineKeyboardMarkup(kb_buttons)
     
     await query.message.edit_text(faq_text, reply_markup=kb, parse_mode='Markdown')
 
+# ---------- АФИША ----------
+async def show_afisha(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    posts = load_posts()
+    if not posts:
+        return await q.message.reply_text("🎭 Афиша пока не загружена.", reply_markup=nav_keyboard())
+    for post in posts:
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton("🍽 Забронировать стол", callback_data="book_table")]])
+        await q.message.reply_photo(post["file_id"], caption=post["caption"], reply_markup=kb)
 
-# ---------- АФИША / ПОСТЫ (для админа) ----------
-def save_post(file_id: str, caption: str):
-    new_file = not os.path.exists("posts.csv")
-    with open("posts.csv", "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f, delimiter=";")
-        if new_file:
-            writer.writerow(["file_id", "caption"])
-        writer.writerow([file_id, caption])
+# ---------- АДМИН ПАНЕЛЬ ----------
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS:
+        return await update.callback_query.message.reply_text("⛔ Нет доступа")
 
-
-def load_posts():
-    posts = []
-    try:
-        with open("posts.csv", "r", encoding="utf-8") as f:
-            r = csv.reader(f, delimiter=";")
-            next(r, None)
-            for row in r:
-                if len(row) >= 2:
-                    posts.append({"file_id": row[0], "caption": row[1]})
-    except FileNotFoundError:
-        pass
-    return posts
-
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📤 Загрузить афишу", callback_data="upload_poster")],
+        [InlineKeyboardButton("📝 Выложить пост", callback_data="upload_post")],
+        [InlineKeyboardButton("📊 Выгрузить гостей", callback_data="export_guests")],
+        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+    ])
+    await update.callback_query.message.reply_text("⚙️ Админ панель:\nВыберите действие:", reply_markup=kb)
 
 async def upload_poster(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS:
@@ -433,7 +384,6 @@ async def upload_poster(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["upload_mode"] = "poster"
     context.user_data["poster_stage"] = "waiting_photo"
 
-
 async def upload_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS:
         return await update.callback_query.message.reply_text("⛔ Нет доступа")
@@ -441,13 +391,11 @@ async def upload_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["upload_mode"] = "post"
     context.user_data["post_stage"] = "waiting_photo"
 
-
 async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS:
         return
     mode = context.user_data.get("upload_mode")
 
-    # --- Афиша: сохранить ---
     if mode == "poster":
         stage = context.user_data.get("poster_stage")
         if stage == "waiting_photo" and update.message.photo:
@@ -461,7 +409,6 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             context.user_data["poster_stage"] = None
             await update.message.reply_text("✅ Афиша сохранена!")
 
-    # --- Пост: сохранить + разослать ---
     elif mode == "post":
         stage = context.user_data.get("post_stage")
         if stage == "waiting_photo" and update.message.photo:
@@ -473,10 +420,8 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             caption = update.message.text
             file_id = context.user_data["temp_post"]
 
-            # Сохраняем
             save_post(file_id, caption)
 
-            # Разослать всем зарегистрированным
             users = []
             try:
                 with open("users.csv", "r", encoding="utf-8") as f:
@@ -502,44 +447,6 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             context.user_data["post_stage"] = None
             await update.message.reply_text(f"✅ Пост опубликован! (OK: {sent}, ошибок: {failed})")
 
-
-async def show_afisha(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.callback_query
-    await q.answer()
-    posts = load_posts()
-    if not posts:
-        return await q.message.reply_text("🎭 Афиша пока не загружена.", reply_markup=nav_keyboard())
-    for post in posts:
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("🍽 Забронировать стол", callback_data="book_table")]])
-        await q.message.reply_photo(post["file_id"], caption=post["caption"], reply_markup=kb)
-
-
-# ---------- АДМИН ПАНЕЛЬ ----------
-async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS:
-        return await update.callback_query.message.reply_text("⛔ Нет доступа")
-
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📤 Загрузить афишу", callback_data="upload_poster")],
-        [InlineKeyboardButton("📝 Выложить пост", callback_data="upload_post")],
-        [InlineKeyboardButton("📊 Выгрузить гостей", callback_data="export_guests")],
-        [InlineKeyboardButton("⭐️ Изменить статус гостя", callback_data="change_status")],
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
-    ])
-    await update.callback_query.message.reply_text("⚙️ Админ панель:\nВыберите действие:", reply_markup=kb)
-
-# ---------- АФИША ----------
-async def show_afisha(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.callback_query
-    await q.answer()
-    posts = load_posts()
-    if not posts:
-        return await q.message.reply_text("🎭 Афиша пока не загружена.", reply_markup=nav_keyboard())
-    for post in posts:
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("🍽 Забронировать стол", callback_data="book_table")]])
-        await q.message.reply_photo(post["file_id"], caption=post["caption"], reply_markup=kb)
-
-# ---------- ЭКСПОРТ ГОСТЕЙ ----------
 async def export_guests(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS:
         return await update.callback_query.message.reply_text("⛔ Нет доступа")
@@ -563,21 +470,6 @@ async def export_guests(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.message.reply_document(open(file_path, "rb"))
     os.remove(file_path)
 
-
-# ---------- АДМИН ПАНЕЛЬ ----------
-async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS:
-        return await update.callback_query.message.reply_text("⛔ Нет доступа")
-
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📤 Загрузить афишу", callback_data="upload_poster")],
-        [InlineKeyboardButton("📝 Выложить пост", callback_data="upload_post")],
-        [InlineKeyboardButton("📊 Выгрузить гостей", callback_data="export_guests")],
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
-    ])
-    await update.callback_query.message.reply_text("⚙️ Админ панель:\nВыберите действие:", reply_markup=kb)
-
-
 # ---------- MAIN ----------
 def main():
     application = Application.builder().token(TOKEN).build()
@@ -590,7 +482,6 @@ def main():
         user_to_support
     ), group=1)
     
-    # Админы → пользователь - ТОЛЬКО ответы в группе
     application.add_handler(MessageHandler(
         filters.Chat(GROUP_CHAT_ID) & filters.REPLY & ~filters.COMMAND, 
         support_to_user
@@ -620,12 +511,9 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(reg_conv)
     application.add_handler(team_conv)
-    application.add_handler(status_conv)
 
-    # Бронь / Такси / Пригласительный / Афиша
+    # Основные обработчики
     application.add_handler(CallbackQueryHandler(book_table, pattern="^book_table$"))
-    application.add_handler(CallbackQueryHandler(order_taxi, pattern="^order_taxi$"))
-    application.add_handler(CallbackQueryHandler(confirm_taxi, pattern="^confirm_taxi$"))
     application.add_handler(CallbackQueryHandler(send_invite, pattern="^invite$"))
     application.add_handler(CallbackQueryHandler(show_afisha, pattern="^show_afisha$"))
     application.add_handler(CallbackQueryHandler(show_faq, pattern="^show_faq$"))
@@ -636,14 +524,11 @@ def main():
     application.add_handler(CallbackQueryHandler(upload_poster, pattern="^upload_poster$"))
     application.add_handler(CallbackQueryHandler(upload_post, pattern="^upload_post$"))
     application.add_handler(MessageHandler(filters.PHOTO | filters.TEXT, handle_admin_messages))
-    application.add_handler(CallbackQueryHandler(show_afisha, pattern="^show_afisha$"))
-    
 
     # Главное меню
     application.add_handler(CallbackQueryHandler(show_main_menu, pattern="^main_menu$"))
 
     application.run_polling()
-
 
 if __name__ == "__main__":
     main()
