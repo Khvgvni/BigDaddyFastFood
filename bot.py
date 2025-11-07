@@ -5,7 +5,8 @@ import openpyxl
 from typing import Dict
 from dotenv import load_dotenv
 from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+    Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
+    ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 )
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
@@ -19,6 +20,9 @@ TOKEN = "8259299108:AAEGFbhRHAd0Zjy4yX6z2MA27QnoZas0LvI"
 GROUP_CHAT_ID = -1005018392524
 PRIVACY_URL = os.getenv("PRIVACY_URL", "https://docs.google.com/document/...")
 ADMINS = [150203692]
+
+# Путь для CSV с пользователями (по умолчанию в /srv/bigdaddycafebot/data/user.csv)
+USERS_CSV_PATH = os.getenv("USERS_CSV_PATH", "/srv/bigdaddycafebot/data/user.csv")
 
 # Маппинг: id сообщения в группе → id пользователя
 ROUTE: Dict[int, int] = {}
@@ -37,19 +41,28 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 📌 Состояния
-REG_NAME, REG_PHONE, TEAM_NAME, TEAM_PHONE, TEAM_ROLE = range(5)
+REG_NAME, REG_CONTACT, TEAM_NAME, TEAM_PHONE, TEAM_ROLE = range(5)
 
 # ---------- УТИЛИТЫ ----------
 def nav_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]])
 
+def ensure_users_csv():
+    """Создаёт директорию и CSV, если их нет."""
+    os.makedirs(os.path.dirname(USERS_CSV_PATH), exist_ok=True)
+    if not os.path.exists(USERS_CSV_PATH):
+        with open(USERS_CSV_PATH, "w", encoding="utf-8", newline="") as f:
+            w = csv.writer(f, delimiter=";")
+            w.writerow(["name", "phone", "user_id", "status"])
+
 def get_user_data(user_id: int):
     try:
-        with open("users.csv", "r", encoding="utf-8") as f:
+        with open(USERS_CSV_PATH, "r", encoding="utf-8") as f:
             r = csv.reader(f, delimiter=";")
             next(r, None)
             for row in r:
-                if len(row) >= 4 and row[2] == str(user_id):
+                # формат: name;phone;user_id;status
+                if len(row) >= 3 and row[2] == str(user_id):
                     return row
     except FileNotFoundError:
         return None
@@ -57,6 +70,16 @@ def get_user_data(user_id: int):
 
 def is_registered(user_id: int) -> bool:
     return get_user_data(user_id) is not None
+
+def append_user_row(name: str, phone: str, user_id: int, status: str = "Black") -> bool:
+    """Добавляет пользователя, если такого user_id ещё нет. Возвращает True если добавили, False если уже был."""
+    ensure_users_csv()
+    if is_registered(user_id):
+        return False
+    with open(USERS_CSV_PATH, "a", encoding="utf-8", newline="") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow([name, phone, user_id, status])
+    return True
 
 def save_post(file_id: str, caption: str):
     new_file = not os.path.exists("posts.csv")
@@ -113,7 +136,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     kb_buttons = [
         [
-            InlineKeyboardButton("🎪 Приложение", web_app=WebAppInfo(url="https://khvgvni.github.io/BadRabbitWebApp/")),
+            InlineKeyboardButton("🎪 Меню", web_app=WebAppInfo(url="https://khvgvni.github.io/BadRabbitWebApp/")),
             InlineKeyboardButton("🍽 Бронь", callback_data="book_table")
         ],
         [
@@ -245,28 +268,55 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def reg_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["reg_name"] = update.message.text
-    await update.message.reply_text("📞 Введите ваш телефон:")
-    return REG_PHONE
+    kb = ReplyKeyboardMarkup(
+        [[KeyboardButton(text="📱 Поделиться контактом", request_contact=True)]],
+        resize_keyboard=True, one_time_keyboard=True, selective=True
+    )
+    await update.message.reply_text(
+        "📞 Нажмите кнопку ниже, чтобы отправить свой номер.",
+        reply_markup=kb
+    )
+    return REG_CONTACT
 
-async def reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["reg_phone"] = update.message.text
+async def reg_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    contact = update.message.contact
+    if not contact or contact.user_id != update.effective_user.id:
+        kb = ReplyKeyboardMarkup(
+            [[KeyboardButton(text="📱 Поделиться контактом", request_contact=True)]],
+            resize_keyboard=True, one_time_keyboard=True, selective=True
+        )
+        await update.message.reply_text(
+            "Пожалуйста, поделитесь *собственным* номером через кнопку на клавиатуре.",
+            reply_markup=kb,
+            parse_mode="Markdown"
+        )
+        return REG_CONTACT
+
+    name = (context.user_data.get("reg_name") or "").strip()
+    phone = contact.phone_number
     user_id = update.effective_user.id
 
-    with open("users.csv", "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f, delimiter=";")
-        writer.writerow([context.user_data["reg_name"], context.user_data["reg_phone"], user_id, "Black"])
+    try:
+        created = append_user_row(name=name, phone=phone, user_id=user_id, status="Black")
+        msg = "✅ Регистрация завершена!" if created else "✅ Вы уже были зарегистрированы."
+        await update.message.reply_text(msg, reply_markup=ReplyKeyboardRemove())
 
-    msg = (
-        f"🆕 Новый пользователь зарегистрировался!\n\n"
-        f"👤 {context.user_data['reg_name']}\n"
-        f"📞 {context.user_data['reg_phone']}\n"
-        f"🆔 {user_id}\n"
-    )
-    await context.bot.send_message(chat_id=GROUP_CHAT_ID, text=msg)
+        notif = (
+            f"🆕 Новый пользователь зарегистрировался!\n\n"
+            f"👤 {name}\n"
+            f"📞 {phone}\n"
+            f"🆔 {user_id}\n"
+        )
+        await context.bot.send_message(chat_id=GROUP_CHAT_ID, text=notif)
 
-    await update.message.reply_text("✅ Регистрация завершена!")
-    await show_main_menu(update, context)
-    return ConversationHandler.END
+        await show_main_menu(update, context)
+        return ConversationHandler.END
+
+    except Exception as e:
+        logger.exception("Ошибка сохранения контакта: %s", e)
+        await update.message.reply_text("❌ Не удалось сохранить контакт. Попробуйте позже.",
+                                        reply_markup=ReplyKeyboardRemove())
+        return ConversationHandler.END
 
 # ---------- БРОНЬ ----------
 async def book_table(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -334,15 +384,15 @@ async def show_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
 *Контактная информация:*
 
 📍 *Адрес*
-└─ г.Комсомольская, 23АА
+└─ ул.Комсомольская, 23А
 
 📞 *Телефон*
-└─ +7-914-351-727-18
+└─ +7-914-351-72-71
 
 🕒 *Часы работы*
 └─ Ежедневно: 10:00 – 23:00
 
-*Перед посещением обязательно ознакомьтесь с правилами:*
+*Перед доставкой и бронированием обязательно ознакомьтесь с правилами:*
     """
     
     kb_buttons = [
@@ -424,7 +474,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
 
             users = []
             try:
-                with open("users.csv", "r", encoding="utf-8") as f:
+                with open(USERS_CSV_PATH, "r", encoding="utf-8") as f:
                     r = csv.reader(f, delimiter=";")
                     next(r, None)
                     for row in r:
@@ -457,9 +507,9 @@ async def export_guests(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ws.append(["ФИО", "Телефон", "Telegram ID", "Статус"])
 
     try:
-        with open("users.csv", "r", encoding="utf-8") as f:
-            r = csv.reader(f, delimiter=";")
-            next(r, None)
+        with open(USERS_CSV_PATH, "r", encoding="utf-8") as f:
+            # читаем построчно, чтобы не дублировать заголовок
+            next(f, None)  # пропустить заголовок
             for row in f:
                 ws.append(row.strip().split(";"))
     except FileNotFoundError:
@@ -472,6 +522,8 @@ async def export_guests(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- MAIN ----------
 def main():
+    ensure_users_csv()
+
     application = Application.builder().token(TOKEN).build()
 
     # Чат с админом
@@ -491,8 +543,8 @@ def main():
     reg_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(register, pattern="^register$")],
         states={
-            REG_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_name)],
-            REG_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_phone)],
+            REG_NAME:    [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_name)],
+            REG_CONTACT: [MessageHandler(filters.CONTACT, reg_contact)],
         },
         fallbacks=[],
     )
