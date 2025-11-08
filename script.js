@@ -787,14 +787,10 @@ const MENU = [
   }
 ];
 
+/* Промокоды */
 const PROMOS = { 'SHAURMA10':0.10, 'WELCOME5':0.05 };
 
-/* ===== Настройки Telegram отправки =====
-   ВПИШИ реальные значения:
-   пример:
-   const TG_BOT_TOKEN = '85710....:ABC...';
-   const TG_CHAT_ID   = '-1004710692840';
-*/
+/* ==== Телеграм-отправка (подставь свои значения) ==== */
 const TG_BOT_TOKEN = '8571037966:AAG2BMP4qqijdel9Mt3ktn4xkl2ncao31wU';
 const TG_CHAT_ID   = '-1003250878681';
 
@@ -813,17 +809,15 @@ const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
 const price = v => `${v.toLocaleString('ru-RU')} ₽`;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
 
-/* ===== Telegram Mini App init ===== */
+/* ===== Telegram Mini App init + фолбэк ===== */
 (function initTelegram(){
   try{
     if (window.Telegram && Telegram.WebApp){
       const tg = Telegram.WebApp;
-      tg.ready();                     // сигнал Телеге, что приложение готово
-      tg.expand && tg.expand();       // разворачиваем
-      // Тема/цвета (по желанию можно использовать tg.themeParams)
+      tg.ready();
+      tg.expand && tg.expand();
       document.documentElement.style.setProperty('--tg-bg', tg.backgroundColor || '#0b0c0f');
 
-      // Подтягиваем юзера, но НЕ затираем уже сохраненные данные
       const u = tg.initDataUnsafe?.user;
       if (u){
         const was = JSON.parse(localStorage.getItem('profile')||'{}');
@@ -832,42 +826,56 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
           phone: was.phone || '',
           dob: was.dob || '',
           addr: was.addr || '',
-          username: was.username || was.username // просто сохранить для инфо
+          username: was.username || was.username
         };
         state.profile = merged;
         localStorage.setItem('profile', JSON.stringify(state.profile));
       }
-      // Скрыть лоадер сразу после ready
-      const loader = $('#loader');
-      if (loader){
-        loader.classList.add('hide');
-        setTimeout(()=>loader.style.display='none', 400);
-      }
+      hideLoader();
+    } else {
+      // нет SDK → просто скрываем лоадер
+      hideLoader();
     }
-  }catch(e){ console.warn('Telegram init error', e); }
+  }catch(e){
+    console.warn('Telegram init error', e);
+    hideLoader();
+  }
 })();
+function hideLoader(){
+  const loader = $('#loader');
+  if (loader){
+    loader.classList.add('hide');
+    setTimeout(()=>loader.style.display='none', 400);
+  }
+}
 
 /* ===== РЕНДЕР ===== */
 function renderCats(){ $$('.cat').forEach(c=>c.classList.toggle('active', c.dataset.cat===state.category)); }
 function filtered(){ return MENU.filter(i=>i.cat===state.category); }
+
+function safeImgPath(p){
+  if (!p) return '';
+  // КЛЮЧЕВОЙ ФИКС: убираем случайные пробелы в сегментах пути
+  return p.split('/').map(part => encodeURIComponent(part.trim())).join('/');
+}
 
 function renderGrid(){
   const grid = $('#grid'); grid.innerHTML='';
   filtered().forEach(d=>{
     const card = document.createElement('article');
     card.className = 'glass card tap';
-    const imgPath = d.img.split('/').map(part => encodeURIComponent(part)).join('/');
+    const imgPath = safeImgPath(d.img);
     card.innerHTML = `
-      <div class="img"><img src="${imgPath}" alt="${d.title}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" onerror="this.style.display='none';this.parentElement.innerHTML='🍽️';"></div>
+      <div class="img"><img src="${imgPath}" alt="${d.title}"
+           style="width:100%;height:100%;object-fit:cover;border-radius:16px;"
+           onerror="this.style.display='none';this.parentElement.innerHTML='🍽️';"></div>
       <div class="title">${d.title}</div>
       <div class="sub">${d.desc || ''}</div>
       <div class="rating">⭐ 4.${Math.floor(Math.random()*5)} • 30 мин</div>
       <div class="price-badge">${d.price > 0 ? price(d.price) : 'Цена уточняется'}</div>
       <button class="add tap" data-id="${d.id}">+</button>
     `;
-    // открыть детали
     card.addEventListener('click', e=>{ if(!e.target.matches('.add')) openSheet(d); });
-    // плюс — сразу в корзину
     card.querySelector('.add').addEventListener('click', e=>{
       e.stopPropagation();
       const id = e.currentTarget.dataset.id;
@@ -883,8 +891,7 @@ function updateBadge(){ $('#badge').textContent = Object.values(state.cart).redu
 let currentDish=null, sheetQty=1;
 function openSheet(dish){
   currentDish=dish; sheetQty=1;
-  const imgPath = dish.img ? dish.img.split('/').map(part => encodeURIComponent(part)).join('/') : '';
-  $('#sheetImg').src = imgPath;
+  $('#sheetImg').src = safeImgPath(dish.img);
   $('#sheetImg').onerror = function(){ this.style.display='none'; };
   $('#sheetTitle').textContent=dish.title;
   $('#sheetDesc').textContent=dish.desc || '';
@@ -893,8 +900,14 @@ function openSheet(dish){
   $('#sheet').classList.add('show');
 }
 $('#sheetBack').addEventListener('click',()=>$('#sheet').classList.remove('show'));
-$('#qPlus').addEventListener('click',()=>{ sheetQty++; $('#qVal').textContent=sheetQty; $('#sheetPrice').textContent=currentDish.price > 0 ? price(currentDish.price*sheetQty) : 'Цена уточняется'; });
-$('#qMinus').addEventListener('click',()=>{ sheetQty=Math.max(1, sheetQty-1); $('#qVal').textContent=sheetQty; $('#sheetPrice').textContent=currentDish.price > 0 ? price(currentDish.price*sheetQty) : 'Цена уточняется'; });
+$('#qPlus').addEventListener('click',()=>{
+  sheetQty++; $('#qVal').textContent=sheetQty;
+  $('#sheetPrice').textContent=currentDish.price > 0 ? price(currentDish.price*sheetQty) : 'Цена уточняется';
+});
+$('#qMinus').addEventListener('click',()=>{
+  sheetQty=Math.max(1, sheetQty-1); $('#qVal').textContent=sheetQty;
+  $('#sheetPrice').textContent=currentDish.price > 0 ? price(currentDish.price*sheetQty) : 'Цена уточняется';
+});
 $('#addToCart').addEventListener('click',()=>{
   state.cart[currentDish.id]=(state.cart[currentDish.id]||0)+sheetQty;
   updateBadge(); renderCart(); toast('Добавлено в корзину'); $('#sheet').classList.remove('show');
@@ -1020,10 +1033,44 @@ function init(){
 
   // шторки + затемнение
   const openScrim = ()=>$('#scrim').classList.add('show');
-  const
+  const closeScrim = ()=>$('#scrim').classList.remove('show');
 
+  $('#btnMenu').addEventListener('click', ()=>{ $('#drawer').classList.add('open'); openScrim(); loadProfile(); });
+  $('#drawerClose').addEventListener('click', ()=>{ $('#drawer').classList.remove('open'); closeScrim(); });
 
+  $('#btnCart').addEventListener('click', ()=>{ $('#cart').classList.add('open'); openScrim(); renderCart(); });
+  $('#cartClose').addEventListener('click', ()=>{ $('#cart').classList.remove('open'); closeScrim(); });
 
+  $('#scrim').addEventListener('click', ()=>{
+    $('#drawer').classList.remove('open');
+    $('#cart').classList.remove('open');
+    closeScrim();
+  });
 
+  // промокод
+  $('#applyPromo').addEventListener('click', ()=>{
+    const code = ($('#promo').value||'').trim().toUpperCase();
+    state.discount = PROMOS[code] || 0;
+    renderCart();
+    toast(state.discount ? 'Промокод применён' : 'Промокод не найден');
+  });
 
+  // профиль
+  $('#saveProfile').addEventListener('click', ()=>{
+    state.profile={
+      name:$('#p_name').value.trim(),
+      phone:$('#p_phone').value.trim(),
+      dob:$('#p_dob').value,
+      addr:$('#p_addr').value.trim()
+    };
+    localStorage.setItem('profile', JSON.stringify(state.profile));
+    toast('Профиль сохранён');
+  });
+
+  // оформление
+  $('#btnCheckout').addEventListener('click', checkout);
+}
+
+// старт
+document.addEventListener('DOMContentLoaded', init);
 
