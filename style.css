@@ -109,13 +109,12 @@ body{
   from{ opacity:0; transform:translateY(10px) }
   to{ opacity:.9; transform:translateY(0) }
 }
+
 .sub{ color:var(--muted); font-size:11px; line-height:1.25; margin-top:2px }
 .badge{ background:var(--accent); color:#062012; border-radius:10px; font-weight:900; padding:2px 6px; font-size:12px; margin-left:6px }
 
 /* поиск */
-.search{
-  margin:12px; padding:12px; display:flex; align-items:center; gap:10px;
-}
+.search{ margin:12px; padding:12px; display:flex; align-items:center; gap:10px; }
 .search input{ flex:1; background:transparent; border:0; outline:0; color:var(--text); font-size:14px }
 .loupe{opacity:.85}
 .filter{ background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:12px }
@@ -168,7 +167,7 @@ body{
 .profile{ padding:12px; margin-bottom:10px }
 .profile h4{ margin:0 0 8px 0 }
 .profile label{ display:block; font-size:12px; color:var(--muted); margin:6px 0 }
-.profile input,.profile textarea{ width:100%; background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:12px; color:var(--text); padding:10px }
+.profile input, .profile textarea{ width:100%; background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:12px; color:var(--text); padding:10px }
 .btn{ border:0; padding:12px 14px; border-radius:14px; font-weight:900; }
 .btn.primary{ background:linear-gradient(180deg,#37d67a,#1c9a58); color:#062012 }
 .btn.ghost{ background:rgba(255,255,255,.08); border:1px solid var(--line); color:var(--text) }
