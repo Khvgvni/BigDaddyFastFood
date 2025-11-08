@@ -867,7 +867,6 @@ function renderGrid(){
     const imgPath = safeImgPath(d.img);
     card.innerHTML = `
       <div class="img"><img src="${imgPath}" alt="${d.title}"
-           style="width:100%;height:100%;object-fit:cover;border-radius:16px;"
            onerror="this.style.display='none';this.parentElement.innerHTML='🍽️';"></div>
       <div class="title">${d.title}</div>
       <div class="sub">${d.desc || ''}</div>
