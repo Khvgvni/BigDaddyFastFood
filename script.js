@@ -908,7 +908,6 @@ function renderGrid(){
              onerror="this.style.display='none';this.parentElement.innerHTML='🍽️';"></div>
         <div class="title">${d.title}</div>
         <div class="sub">${d.desc || ''}</div>
-        <div class="rating">⭐ 4.${Math.floor(Math.random()*5)} • 30 мин</div>
         <div class="price-badge">${d.price > 0 ? price(d.price) : 'Цена уточняется'}</div>
         <button class="add tap" data-id="${d.id}">+</button>
       `;
@@ -1174,40 +1173,252 @@ async function checkout(){
   $('#scrim').classList.remove('show');
 }
 
-/* ===== Профиль ===== */
-async function loadUserDataFromCSV() {
+/* ===== СИНХРОНИЗАЦИЯ С CSV ===== */
+
+// URL для API синхронизации (укажи свой адрес сервера)
+const SYNC_API_URL = '/api/user_sync.php';
+const CSV_URL = '/bigdaddy_ff/user.csv';
+
+// Состояние синхронизации
+let syncState = {
+  lastSync: null,
+  isSyncing: false,
+  autoSyncEnabled: true,
+  syncInterval: 30000 // 30 секунд
+};
+
+// Улучшенная загрузка данных из CSV с повторными попытками
+async function loadUserDataFromCSV(retries = 3) {
+  if (syncState.isSyncing) return;
+  
+  syncState.isSyncing = true;
+  showSyncStatus('loading');
+  
   try {
-    const response = await fetch('/bigdaddy_ff/user.csv');
-    if (!response.ok) throw new Error('Не удалось загрузить данные');
-    
-    const text = await response.text();
-    const lines = text.trim().split('\n');
-    
     // Получаем telegram ID пользователя
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (!tgUser || !tgUser.id) return;
+    if (!tgUser || !tgUser.id) {
+      console.warn('Нет данных пользователя Telegram');
+      syncState.isSyncing = false;
+      return;
+    }
     
     const userId = tgUser.id.toString();
     
-    // Ищем данные пользователя в CSV
-    for (let i = 1; i < lines.length; i++) {
-      const columns = lines[i].split(',');
-      if (columns[0] === userId) {
-        // Предполагаем формат: telegram_id,name,phone,dob,addr
-        state.profile = {
-          name: columns[1] || '',
-          phone: columns[2] || '',
-          dob: columns[3] || '',
-          addr: columns[4] || '',
-          username: tgUser.username || ''
-        };
-        localStorage.setItem('profile', JSON.stringify(state.profile));
-        break;
+    // Пробуем загрузить данные
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const response = await fetch(CSV_URL, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+        
+        // Ищем данные пользователя в CSV
+        let found = false;
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          // Парсим CSV (учитываем кавычки и запятые внутри полей)
+          const columns = parseCSVLine(line);
+          
+          if (columns[0] === userId) {
+            // Формат: telegram_id,name,phone,dob,addr,username
+            const newProfile = {
+              name: columns[1] || '',
+              phone: columns[2] || '',
+              dob: columns[3] || '',
+              addr: columns[4] || '',
+              username: columns[5] || tgUser.username || ''
+            };
+            
+            state.profile = newProfile;
+            localStorage.setItem('profile', JSON.stringify(state.profile));
+            
+            // Обновляем поля если открыт профиль
+            if (document.querySelector('#p_name')) {
+              loadProfile();
+            }
+            
+            found = true;
+            syncState.lastSync = Date.now();
+            showSyncStatus('success');
+            console.log('✅ Данные загружены из CSV');
+            break;
+          }
+        }
+        
+        if (!found) {
+          console.log('ℹ️ Пользователь не найден в CSV, используем данные Telegram');
+          // Создаем базовый профиль из данных Telegram
+          state.profile = {
+            name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' '),
+            phone: '',
+            dob: '',
+            addr: '',
+            username: tgUser.username || ''
+          };
+          localStorage.setItem('profile', JSON.stringify(state.profile));
+          showSyncStatus('warning');
+        }
+        
+        syncState.isSyncing = false;
+        return; // Успешно загрузили
+        
+      } catch (err) {
+        console.warn(`Попытка ${attempt + 1}/${retries} не удалась:`, err);
+        if (attempt < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
       }
     }
+    
+    // Все попытки исчерпаны
+    throw new Error('Не удалось загрузить данные после нескольких попыток');
+    
   } catch (e) {
-    console.warn('Ошибка загрузки данных из CSV:', e);
+    console.error('❌ Ошибка загрузки данных из CSV:', e);
+    showSyncStatus('error');
+    
+    // Загружаем из localStorage как fallback
+    const saved = localStorage.getItem('profile');
+    if (saved) {
+      state.profile = JSON.parse(saved);
+      console.log('ℹ️ Используем сохраненные данные из localStorage');
+    }
+  } finally {
+    syncState.isSyncing = false;
   }
+}
+
+// Парсинг строки CSV с учетом кавычек
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
+// Сохранение данных обратно в CSV (через API)
+async function saveUserDataToCSV(profileData) {
+  if (syncState.isSyncing) return false;
+  
+  syncState.isSyncing = true;
+  showSyncStatus('saving');
+  
+  try {
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (!tgUser || !tgUser.id) {
+      throw new Error('Нет данных пользователя Telegram');
+    }
+    
+    const userId = tgUser.id.toString();
+    
+    // Отправляем данные на сервер
+    const response = await fetch(SYNC_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'save',
+        telegram_id: userId,
+        data: profileData
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      syncState.lastSync = Date.now();
+      showSyncStatus('success');
+      console.log('✅ Данные сохранены в CSV');
+      return true;
+    } else {
+      throw new Error(result.error || 'Ошибка сохранения');
+    }
+    
+  } catch (e) {
+    console.error('❌ Ошибка сохранения данных в CSV:', e);
+    showSyncStatus('error');
+    return false;
+  } finally {
+    syncState.isSyncing = false;
+  }
+}
+
+// Показать статус синхронизации
+function showSyncStatus(status) {
+  const statusMessages = {
+    loading: '⏳ Загрузка данных...',
+    saving: '💾 Сохранение...',
+    success: '✅ Синхронизировано',
+    warning: '⚠️ Используем локальные данные',
+    error: '❌ Ошибка синхронизации'
+  };
+  
+  const message = statusMessages[status] || '';
+  
+  // Показываем в консоли
+  console.log(message);
+  
+  // Можно добавить визуальный индикатор
+  const badge = document.querySelector('#syncBadge');
+  if (badge) {
+    badge.textContent = message;
+    badge.className = `sync-badge sync-${status}`;
+    badge.style.display = 'block';
+    
+    // Скрываем через 3 секунды если успех
+    if (status === 'success') {
+      setTimeout(() => {
+        badge.style.display = 'none';
+      }, 3000);
+    }
+  }
+}
+
+// Автоматическая периодическая синхронизация
+function startAutoSync() {
+  if (!syncState.autoSyncEnabled) return;
+  
+  // Синхронизируем каждые 30 секунд
+  setInterval(() => {
+    if (!syncState.isSyncing && syncState.autoSyncEnabled) {
+      loadUserDataFromCSV();
+    }
+  }, syncState.syncInterval);
+  
+  console.log('🔄 Автосинхронизация включена (каждые 30 сек)');
 }
 
 function loadProfile(){
@@ -1249,6 +1460,9 @@ function collapseAllSections() {
 function init(){
   // Загрузка данных из CSV при старте
   loadUserDataFromCSV();
+  
+  // Запускаем автоматическую синхронизацию
+  startAutoSync();
   
   // Предотвращаем двойной тап для зума на iOS
   let lastTouchEnd = 0;
@@ -1331,16 +1545,28 @@ function init(){
     toast(state.discount ? 'Промокод применён' : 'Промокод не найден');
   });
 
-  // профиль
-  $('#saveProfile').addEventListener('click', ()=>{
-    state.profile={
+  // профиль - с синхронизацией в CSV
+  $('#saveProfile').addEventListener('click', async ()=>{
+    const newProfile = {
       name:$('#p_name').value.trim(),
       phone:$('#p_phone').value.trim(),
       dob:$('#p_dob').value,
       addr:$('#p_addr').value.trim()
     };
+    
+    state.profile = newProfile;
     localStorage.setItem('profile', JSON.stringify(state.profile));
-    toast('Профиль сохранён');
+    
+    toast('💾 Сохранение...');
+    
+    // Синхронизируем с CSV
+    const saved = await saveUserDataToCSV(newProfile);
+    
+    if (saved) {
+      toast('✅ Профиль сохранён и синхронизирован');
+    } else {
+      toast('⚠️ Профиль сохранён локально');
+    }
   });
 
   // оформление
