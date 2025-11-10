@@ -907,7 +907,6 @@ function renderGrid(){
         <div class="img"><img src="${imgPath}" alt="${d.title}"
              onerror="this.style.display='none';this.parentElement.innerHTML='🍽️';"></div>
         <div class="title">${d.title}</div>
-        <div class="sub">${d.desc || ''}</div>
         <div class="price-badge">${d.price > 0 ? price(d.price) : 'Цена уточняется'}</div>
         <button class="add tap" data-id="${d.id}">+</button>
       `;
@@ -1376,7 +1375,7 @@ async function saveUserDataToCSV(profileData) {
   }
 }
 
-// Показать статус синхронизации
+// Показать статус синхронизации (только в консоли)
 function showSyncStatus(status) {
   const statusMessages = {
     loading: '⏳ Загрузка данных...',
@@ -1388,23 +1387,14 @@ function showSyncStatus(status) {
   
   const message = statusMessages[status] || '';
   
-  // Показываем в консоли
+  // Показываем только в консоли (не показываем пользователю)
   console.log(message);
   
-  // Можно добавить визуальный индикатор
-  const badge = document.querySelector('#syncBadge');
-  if (badge) {
-    badge.textContent = message;
-    badge.className = `sync-badge sync-${status}`;
-    badge.style.display = 'block';
-    
-    // Скрываем через 3 секунды если успех
-    if (status === 'success') {
-      setTimeout(() => {
-        badge.style.display = 'none';
-      }, 3000);
-    }
-  }
+  // Визуальный индикатор скрыт - не симпатично выглядит
+  // const badge = document.querySelector('#syncBadge');
+  // if (badge) {
+  //   badge.style.display = 'none';
+  // }
 }
 
 // Автоматическая периодическая синхронизация
