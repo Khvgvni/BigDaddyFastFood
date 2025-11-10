@@ -502,8 +502,7 @@ body::before{
   object-position:center;
 }
 .card .title{ font-weight:800; font-size:13px; line-height:1.15 }
-.card .sub{ font-size:11px; color:var(--muted) }
-.rating{ font-size:11px; opacity:.9 }
+.card .sub{ font-size:11px; color:var(--muted); min-height:32px; }
 
 /* Ценник - перемещаем влево, чтобы не перекрывался кнопкой */
 .price-badge{ 
