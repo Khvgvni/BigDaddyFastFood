@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,minimum-scale=1,user-scalable=yes,viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#0b0c0e">
+  <title>Шаурма на углях</title>
+
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script defer src="./script.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg"></div>
+
+  <!-- Экран загрузки -->
+  <div id="loader" class="loader">
+    <div class="loader-content">
+      <img class="loader-logo" src="./logo.png" alt="Шаурма на углях" />
+      <div class="loader-text">Шаурма на углях</div>
+    </div>
+  </div>
+
+  <!-- затемнение для шторок -->
+  <div id="scrim" class="scrim"></div>
+
+  <div class="phone">
+    <!-- Топ-бар -->
+    <header class="topbar">
+      <button id="btnMenu" class="icon glass tap" aria-label="Меню">☰</button>
+
+      <div class="brand">
+        <img class="logo-img" src="./logo.png" alt="Шаурма на углях" />
+        <div class="brand-lines">
+          <span class="brand-main">Шаурма на углях</span>
+          <span class="brand-sub">🌯 Сочное мясо и свежие овощи</span>
+          <span class="brand-sub">🥩 Быстрая доставка 🚚</span>
+        </div>
+      </div>
+
+      <button id="btnCart" class="icon glass tap" aria-label="Корзина">
+        🛒 <span class="badge" id="badge">0</span>
+      </button>
+    </header>
+
+    <!-- Навигация -->
+    <nav class="cats">
+      <button class="cat active tap" data-cat="Шаурма"><span class="icon">🌯</span><span>Шаурма</span></button>
+      <button class="cat tap" data-cat="Пицца"><span class="icon">🍕</span><span>Пицца</span></button>
+      <button class="cat tap" data-cat="Бургеры"><span class="icon">🍔</span><span>Бургеры</span></button>
+      <button class="cat tap" data-cat="Панини"><span class="icon">🥪</span><span>Панини</span></button>
+      <button class="cat tap" data-cat="Картофель фри"><span class="icon">🍟</span><span>Картофель фри</span></button>
+      <button class="cat tap" data-cat="Соусы"><span class="icon">🧂</span><span>Соусы</span></button>
+      <button class="cat tap" data-cat="Хот дог"><span class="icon">🌭</span><span>Хот дог</span></button>
+      <button class="cat tap" data-cat="Роллы в тортилье"><span class="icon">🌯</span><span>Роллы</span></button>
+      <button class="cat tap" data-cat="Десерты"><span class="icon">🍰</span><span>Десерты</span></button>
+      <button class="cat tap" data-cat="Добавки в шаурму"><span class="icon">➕</span><span>Добавки</span></button>
+      <button class="cat tap" data-cat="Комбо"><span class="icon">🍱</span><span>Комбо</span></button>
+      <button class="cat tap" data-cat="Креветки в панировке"><span class="icon">🦐</span><span>Креветки</span></button>
+      <button class="cat tap" data-cat="Крылья"><span class="icon">🍗</span><span>Крылья</span></button>
+      <button class="cat tap" data-cat="Напитки"><span class="icon">☕</span><span>Напитки</span></button>
+      <button class="cat tap" data-cat="Салаты"><span class="icon">🥗</span><span>Салаты</span></button>
+      <button class="cat tap" data-cat="Сырные палочки"><span class="icon">🧀</span><span>Сырные</span></button>
+      <button class="cat tap" data-cat="Чиабатта"><span class="icon">🥖</span><span>Чиабатта</span></button>
+      <button class="cat tap" data-cat="Шашлык"><span class="icon">🔥</span><span>Шашлык</span></button>
+    </nav>
+
+    <!-- Сетка карточек -->
+    <main id="grid" class="grid"></main>
+
+    <div class="homebar"></div>
+  </div>
+
+  <!-- Левое меню -->
+  <aside id="drawer" class="drawer">
+    <div class="drawer-head">
+      <h3>Меню</h3>
+      <button class="icon tap" id="drawerClose">✕</button>
+    </div>
+
+    <div class="drawer-section">
+      <button class="drawer-section-header tap" data-section="profile">
+        <span>Профиль</span>
+        <span class="arrow">▼</span>
+      </button>
+      <div class="drawer-section-content glass profile" id="profileSection">
+        <label>ФИО<input id="p_name" type="text" placeholder="Ваше имя"></label>
+        <label>Телефон<input id="p_phone" type="tel" placeholder="+7 ___ ___-__-__"></label>
+        <label>Дата рождения<input id="p_dob" type="date"></label>
+        <label>Адрес<input id="p_addr" type="text" placeholder="Город, улица, дом, кв."></label>
+        <button id="saveProfile" class="btn primary tap">Сохранить</button>
+      </div>
+    </div>
+
+    <button class="drawer-item tap" data-info="orders">История заказов</button>
+    <button class="drawer-item tap" data-info="delivery">Доставка (условия)</button>
+
+    <div id="drawerInfo" class="muted small"></div>
+  </aside>
+
+  <!-- Детали блюда -->
+  <section id="sheet" class="sheet">
+    <div class="sheet-img">
+      <div class="calories glass">🔥 86 ккал</div>
+      <img id="sheetImg" alt="">
+    </div>
+
+    <div class="sheet-body glass">
+      <div class="qty">
+        <button id="qMinus" class="icon tap">−</button>
+        <span id="qVal">1</span>
+        <button id="qPlus" class="icon tap">+</button>
+      </div>
+
+      <h3 id="sheetTitle">Название</h3>
+      <p id="sheetDesc" class="muted">Описание блюда…</p>
+
+      <div class="row">
+        <div class="muted small">⏱ ~30 минут</div>
+        <div class="muted small">⭐ 4.5</div>
+      </div>
+
+      <div class="sheet-actions">
+        <div class="price" id="sheetPrice">0 ₽</div>
+        <button id="addToCart" class="btn primary tap">Добавить</button>
+      </div>
+    </div>
+
+    <button id="sheetBack" class="sheet-back icon glass tap">←</button>
+  </section>
+
+  <!-- Корзина -->
+  <aside id="cart" class="cart">
+    <div class="drawer-head">
+      <h3>Корзина</h3>
+      <button class="icon tap" id="cartClose">✕</button>
+    </div>
+
+    <div id="cartList" class="cart-list"></div>
+
+    <div class="glass cart-foot">
+      <div class="row">
+        <input id="promo" class="input" placeholder="Промокод" />
+        <button id="applyPromo" class="btn ghost tap">Ок</button>
+      </div>
+      <textarea id="comment" class="input" rows="2" placeholder="Комментарий к заказу (без лука, подъезд и т.д.)"></textarea>
+      <div class="summary">
+        <div>Кол-во: <strong id="sumQty">0</strong></div>
+        <div>Сумма: <strong id="sumPrice">0 ₽</strong></div>
+        <div class="muted small" id="saleNote"></div>
+      </div>
+      <button id="btnCheckout" class="btn primary wide tap">Оформить заказ</button>
+      <div class="muted tiny">Заказ отправится админам (Telegram chat_id).</div>
+    </div>
+  </aside>
+
+  <div id="toast" class="toast"></div>
+</body>
+</html>
