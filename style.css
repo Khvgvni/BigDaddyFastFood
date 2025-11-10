@@ -48,20 +48,115 @@ body{
   -webkit-user-select:none;
   -moz-user-select:none;
   user-select:none;
+  /* Добавляем overflow для body */
+  overflow-x:hidden;
+  position:relative;
 }
 
-/* Разрешаем выделение текста в инпутах */
-input, textarea{
-  -webkit-user-select:text;
-  -moz-user-select:text;
-  user-select:text;
+/* Мерцающие акценты на фоне */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, rgba(16,185,129,.4), transparent),
+    radial-gradient(2px 2px at 60% 70%, rgba(59,130,246,.3), transparent),
+    radial-gradient(1px 1px at 50% 50%, rgba(139,92,246,.3), transparent),
+    radial-gradient(1px 1px at 80% 10%, rgba(34,197,94,.4), transparent),
+    radial-gradient(2px 2px at 90% 60%, rgba(16,185,129,.3), transparent),
+    radial-gradient(1px 1px at 33% 80%, rgba(79,70,229,.3), transparent),
+    radial-gradient(1px 1px at 15% 90%, rgba(34,197,94,.3), transparent),
+    radial-gradient(2px 2px at 45% 15%, rgba(59,130,246,.3), transparent);
+  background-size:200% 200%;
+  background-position:0% 0%;
+  animation:sparkle 8s ease-in-out infinite;
+  pointer-events:none;
+  z-index:-1;
+  opacity:.5;
 }
-.bg:before,.bg:after{
-  content:""; position:fixed; inset:-20% -30% auto -30%; height:360px;
-  background:conic-gradient(from 120deg,#1ad6a1,#31d66d,#6dffb1,#1ad6a1);
-  filter:blur(120px); opacity:.22; z-index:-1;
+
+/* Анимация мерцания */
+@keyframes sparkle{
+  0%, 100%{
+    opacity:.3;
+    background-position:0% 0%;
+  }
+  25%{
+    opacity:.6;
+    background-position:50% 50%;
+  }
+  50%{
+    opacity:.4;
+    background-position:100% 100%;
+  }
+  75%{
+    opacity:.5;
+    background-position:50% 0%;
+  }
 }
-.bg:after{inset:auto -20% -25% -20%; background:conic-gradient(from 200deg,#ffb36b,#ff6b6b,#ffd36b,#ffb36b); opacity:.16}
+
+/* Анимированный градиентный фон - 3 слоя для глубины */
+.bg:before{
+  content:""; 
+  position:fixed; 
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(16,185,129,.25) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(59,130,246,.2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 70%, rgba(139,92,246,.15) 0%, transparent 50%);
+  filter:blur(80px);
+  z-index:-1;
+  animation:bgPulse 15s ease-in-out infinite;
+}
+
+.bg:after{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 10% 50%, rgba(16,185,129,.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 80%, rgba(79,70,229,.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 10%, rgba(34,197,94,.1) 0%, transparent 60%);
+  filter:blur(100px);
+  z-index:-1;
+  animation:bgFloat 20s ease-in-out infinite reverse;
+}
+
+/* Анимация пульсации фона */
+@keyframes bgPulse{
+  0%, 100%{ 
+    opacity:.8;
+    transform:scale(1) rotate(0deg);
+  }
+  25%{
+    opacity:.9;
+    transform:scale(1.05) rotate(1deg);
+  }
+  50%{
+    opacity:1;
+    transform:scale(1.1) rotate(0deg);
+  }
+  75%{
+    opacity:.9;
+    transform:scale(1.05) rotate(-1deg);
+  }
+}
+
+/* Анимация плавания фона */
+@keyframes bgFloat{
+  0%, 100%{
+    opacity:.7;
+    transform:translateY(0) scale(1);
+  }
+  33%{
+    opacity:.85;
+    transform:translateY(-20px) scale(1.08);
+  }
+  66%{
+    opacity:.75;
+    transform:translateY(10px) scale(1.05);
+  }
+}
 
 /* затемнение */
 .scrim{
@@ -70,20 +165,70 @@ input, textarea{
 }
 .scrim.show{ opacity:1; pointer-events:auto }
 
-/* экран */
+/* экран - улучшенный градиентный фон */
 .phone{
   width:100%; max-width:430px; margin:0 auto; min-height:100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0);
-  background: radial-gradient(900px 600px at 10% -10%, #18181c, #0b0c0e 55%, #060607 100%);
+  background: 
+    linear-gradient(135deg, 
+      rgba(16,185,129,.03) 0%, 
+      transparent 30%,
+      transparent 70%,
+      rgba(79,70,229,.03) 100%
+    ),
+    radial-gradient(ellipse 900px 600px at 50% 0%, 
+      rgba(15,23,42,.98) 0%, 
+      rgba(11,12,14,.99) 50%, 
+      rgba(6,6,7,1) 100%
+    );
+  position:relative;
 }
 
-/* стекло */
+/* стекло - улучшенный эффект */
 .glass{
-  background:var(--glass);
+  background:linear-gradient(
+    135deg,
+    rgba(255,255,255,.08) 0%,
+    rgba(255,255,255,.04) 50%,
+    rgba(255,255,255,.06) 100%
+  );
   border:1px solid var(--line);
-  backdrop-filter: blur(var(--blur)) saturate(125%);
+  backdrop-filter: blur(var(--blur)) saturate(140%);
   border-radius:var(--r);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.45);
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255,255,255,.08),
+    inset 0 0 20px rgba(16,185,129,.03),
+    0 10px 30px rgba(0,0,0,.5),
+    0 0 40px rgba(16,185,129,.05);
+  position:relative;
+  overflow:hidden;
+}
+
+/* Мерцающий блик на glass элементах */
+.glass::before{
+  content:'';
+  position:absolute;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255,255,255,.03) 50%,
+    transparent 70%
+  );
+  animation:glassShine 8s linear infinite;
+  pointer-events:none;
+}
+
+@keyframes glassShine{
+  0%{
+    transform:translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100%{
+    transform:translateX(100%) translateY(100%) rotate(45deg);
+  }
 }
 
 /* нажатие - оптимизировано для touch */
@@ -242,9 +387,51 @@ input, textarea{
   -webkit-user-select:none;
   user-select:none;
 }
-.cat .icon{ font-size:24px; line-height:1; margin-bottom:2px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+.cat .icon{ 
+  font-size:24px; 
+  line-height:1; 
+  margin-bottom:2px; 
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
+  transition:transform .2s ease;
+}
 .cat span{ font-size:11px; color:#e9e9ef; text-align:center }
-.cat.active{ outline:2px solid rgba(55,214,122,.45); background:rgba(55,214,122,.12) }
+
+/* Активная категория с красивым свечением */
+.cat.active{ 
+  outline:2px solid rgba(55,214,122,.6); 
+  background:linear-gradient(
+    135deg,
+    rgba(55,214,122,.18) 0%,
+    rgba(55,214,122,.12) 50%,
+    rgba(55,214,122,.15) 100%
+  );
+  box-shadow:
+    inset 0 0 20px rgba(55,214,122,.1),
+    0 4px 20px rgba(55,214,122,.25),
+    0 0 30px rgba(55,214,122,.15);
+  animation:categoryPulse 2s ease-in-out infinite;
+}
+
+.cat.active .icon{
+  filter:drop-shadow(0 2px 8px rgba(55,214,122,.6));
+  transform:scale(1.08);
+}
+
+/* Пульсация активной категории */
+@keyframes categoryPulse{
+  0%, 100%{
+    box-shadow:
+      inset 0 0 20px rgba(55,214,122,.1),
+      0 4px 20px rgba(55,214,122,.25),
+      0 0 30px rgba(55,214,122,.15);
+  }
+  50%{
+    box-shadow:
+      inset 0 0 25px rgba(55,214,122,.15),
+      0 6px 25px rgba(55,214,122,.35),
+      0 0 40px rgba(55,214,122,.25);
+  }
+}
 
 /* сетка карточек 2 колонки */
 /* >>> ФИКС МАСШТАБИРОВАНИЯ КАРТИНОК В КАРТОЧКАХ <<< */
@@ -274,7 +461,27 @@ input, textarea{
   width:40px; height:3px; border-radius:2px;
   background:linear-gradient(90deg, var(--accent), transparent);
 }
-.card{ position:relative; padding:12px; display:flex; flex-direction:column; gap:8px }
+.card{ 
+  position:relative; 
+  padding:12px; 
+  display:flex; 
+  flex-direction:column; 
+  gap:8px;
+  /* Добавляем hover эффект */
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow: 
+    inset 0 0 0 1px rgba(255,255,255,.08), 
+    0 12px 40px rgba(0,0,0,.55),
+    0 0 30px rgba(16,185,129,.1);
+}
+
+.card:active{
+  transform:translateY(0);
+}
 
 /* контейнер для картинки */
 .card .img{
@@ -295,20 +502,64 @@ input, textarea{
   object-position:center;
 }
 .card .title{ font-weight:800; font-size:13px; line-height:1.15 }
-.card .title{ font-weight:800; font-size:13px; line-height:1.15 }
 .card .sub{ font-size:11px; color:var(--muted) }
 .rating{ font-size:11px; opacity:.9 }
-.price-badge{ position:absolute; right:10px; bottom:10px; background:linear-gradient(180deg,#ff6b6b,#d44848); border-radius:10px; padding:4px 8px; font-weight:900; font-size:12px; box-shadow:0 6px 12px rgba(212,72,72,.35) }
+
+/* Ценник - перемещаем влево, чтобы не перекрывался кнопкой */
+.price-badge{ 
+  position:absolute; 
+  left:10px; 
+  bottom:10px; 
+  background:linear-gradient(180deg,#ff6b6b,#d44848); 
+  border-radius:10px; 
+  padding:5px 10px; 
+  font-weight:900; 
+  font-size:13px; 
+  box-shadow:0 6px 12px rgba(212,72,72,.4);
+  z-index:2;
+  /* Делаем ценник более заметным */
+  letter-spacing:.3px;
+}
+
+/* Кнопка добавления - справа внизу */
 .add{ 
-  align-self:flex-end; margin-top:4px; 
-  background:linear-gradient(180deg, #37d67a, #1c9a58); 
-  color:#062012; border:0; border-radius:12px; 
-  padding:8px 10px; font-weight:900;
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  background:linear-gradient(135deg, #37d67a 0%, #22c55e 50%, #1c9a58 100%); 
+  color:#062012; 
+  border:0; 
+  border-radius:12px; 
+  padding:0; 
+  font-weight:900;
+  font-size:20px;
   /* Минимальная область тапа 44x44px для iOS */
-  min-width:44px; min-height:44px;
-  display:flex; align-items:center; justify-content:center;
+  width:44px; 
+  height:44px;
+  display:flex; 
+  align-items:center; 
+  justify-content:center;
   /* Оптимизация для touch */
   touch-action:manipulation;
+  z-index:3;
+  /* Красивое свечение */
+  box-shadow:
+    0 4px 12px rgba(55,214,122,.35),
+    0 0 20px rgba(55,214,122,.2),
+    inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+
+.add:hover{
+  transform:scale(1.05);
+  box-shadow:
+    0 6px 16px rgba(55,214,122,.45),
+    0 0 30px rgba(55,214,122,.3),
+    inset 0 1px 0 rgba(255,255,255,.4);
+}
+
+.add:active{
+  transform:scale(.95);
 }
 
 /* шторки */
@@ -385,6 +636,57 @@ input, textarea{
 }
 .toast.show{ opacity:1 }
 
+/* Индикатор синхронизации */
+.sync-badge{
+  position:fixed; 
+  top:calc(60px + var(--safe-top)); 
+  right:12px; 
+  z-index:30;
+  padding:8px 12px; 
+  border-radius:12px; 
+  font-size:11px; 
+  font-weight:700;
+  backdrop-filter:blur(12px);
+  box-shadow:0 4px 12px rgba(0,0,0,.3);
+  animation:slideInRight .3s ease;
+  transition:all .25s ease;
+}
+
+@keyframes slideInRight{
+  from{ transform:translateX(120%); opacity:0; }
+  to{ transform:translateX(0); opacity:1; }
+}
+
+.sync-badge.sync-loading{
+  background:rgba(59,130,246,.2);
+  border:1px solid rgba(59,130,246,.4);
+  color:#60a5fa;
+}
+
+.sync-badge.sync-saving{
+  background:rgba(139,92,246,.2);
+  border:1px solid rgba(139,92,246,.4);
+  color:#a78bfa;
+}
+
+.sync-badge.sync-success{
+  background:rgba(34,197,94,.2);
+  border:1px solid rgba(34,197,94,.4);
+  color:#4ade80;
+}
+
+.sync-badge.sync-warning{
+  background:rgba(251,191,36,.2);
+  border:1px solid rgba(251,191,36,.4);
+  color:#fbbf24;
+}
+
+.sync-badge.sync-error{
+  background:rgba(239,68,68,.2);
+  border:1px solid rgba(239,68,68,.4);
+  color:#f87171;
+}
+
 /* Оптимизация для маленьких экранов */
 @media (max-width:360px){
   .card .img{ height:108px }
@@ -437,5 +739,9 @@ input, textarea{
     animation-iteration-count:1 !important;
     transition-duration:0.01ms !important;
     scroll-behavior:auto !important;
+  }
+  /* Отключаем фоновые анимации для экономии */
+  .bg:before, .bg:after, body::before, .glass::before{
+    animation:none !important;
   }
 }
